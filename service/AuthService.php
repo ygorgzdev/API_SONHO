@@ -12,7 +12,12 @@ class AuthService
 
     public function __construct()
     {
-        $this->usuarioDAO = new UsuarioDAO();
+        try {
+            $this->usuarioDAO = new UsuarioDAO();
+        } catch (Exception $e) {
+            error_log("Erro ao inicializar AuthService: " . $e->getMessage());
+            throw new Exception("Erro interno do sistema");
+        }
     }
 
     public function login($email, $senha)
@@ -23,8 +28,15 @@ class AuthService
                 return ["erro" => "Email e senha são obrigatórios"];
             }
 
+            $email = trim($email);
+            $senha = trim($senha);
+
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return ["erro" => "Email inválido"];
+            }
+
+            if (strlen($senha) < 3) {
+                return ["erro" => "Senha deve ter pelo menos 3 caracteres"];
             }
 
             // Buscar usuário no banco
@@ -62,10 +74,14 @@ class AuthService
     public function registrar($email, $senha, $nome)
     {
         try {
-            // Validações
+            // Validações de entrada
             if (empty($email) || empty($senha) || empty($nome)) {
                 return ["erro" => "Email, senha e nome são obrigatórios"];
             }
+
+            $email = trim($email);
+            $senha = trim($senha);
+            $nome = trim($nome);
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return ["erro" => "Email inválido"];
@@ -79,6 +95,10 @@ class AuthService
                 return ["erro" => "Nome deve ter pelo menos 2 caracteres"];
             }
 
+            if (strlen($nome) > 100) {
+                return ["erro" => "Nome não pode ter mais de 100 caracteres"];
+            }
+
             // Verificar se email já existe
             $usuarioExistente = $this->usuarioDAO->buscarPorEmail($email);
             if (!empty($usuarioExistente)) {
@@ -86,13 +106,22 @@ class AuthService
             }
 
             // Hash da senha
-            $senhaHash = password_hash($senha, PASSWORD_BCRYPT);
+            $senhaHash = password_hash($senha, PASSWORD_BCRYPT, ['cost' => 12]);
+
+            if (!$senhaHash) {
+                throw new Exception("Erro ao processar senha");
+            }
 
             // Inserir usuário
             $usuario_id = $this->usuarioDAO->inserir($email, $senhaHash, $nome);
 
             if ($usuario_id) {
-                return ["sucesso" => "Usuário registrado com sucesso!", "id" => $usuario_id];
+                return [
+                    "sucesso" => "Usuário registrado com sucesso!",
+                    "id" => $usuario_id,
+                    "email" => $email,
+                    "nome" => $nome
+                ];
             }
 
             return ["erro" => "Erro ao registrar usuário"];
@@ -111,13 +140,25 @@ class AuthService
                 return ["erro" => "Acesso não autorizado"];
             }
 
+            if (!isset($dadosUsuario->usuario_id) || !is_numeric($dadosUsuario->usuario_id)) {
+                return ["erro" => "Token inválido"];
+            }
+
             $usuario = $this->usuarioDAO->listarPorId($dadosUsuario->usuario_id);
 
             if (empty($usuario)) {
                 return ["erro" => "Usuário não encontrado"];
             }
 
-            return $usuario[0];
+            $dadosUsuario = $usuario[0];
+
+            // Remover dados sensíveis antes de retornar
+            unset($dadosUsuario['senha']);
+
+            return [
+                "sucesso" => "Perfil obtido com sucesso",
+                "usuario" => $dadosUsuario
+            ];
         } catch (Exception $e) {
             error_log("Erro ao obter perfil: " . $e->getMessage());
             return ["erro" => "Erro interno ao obter perfil"];

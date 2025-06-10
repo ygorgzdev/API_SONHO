@@ -11,6 +11,18 @@ class Rotas
     public function __construct()
     {
         $this->endpoints = [
+            // Rotas de autenticação (não protegidas)
+            "auth/login" => new Acao([
+                Acao::POST => new Endpoint("Auth", "login")
+            ]),
+            "auth/register" => new Acao([
+                Acao::POST => new Endpoint("Auth", "register")
+            ]),
+
+            // Rotas protegidas - requerem autenticação
+            "auth/perfil" => new Acao([
+                Acao::GET => new Endpoint("Auth", "perfil")
+            ]),
             "sonhos" => new Acao([
                 Acao::GET => new Endpoint("Sonho", "listar"),
                 Acao::POST => new Endpoint("Sonho", "inserir")
@@ -50,13 +62,39 @@ class Rotas
         ];
     }
 
+    // Rotas que não precisam de autenticação
+    private function rotasPublicas()
+    {
+        return [
+            "auth/login",
+            "auth/register"
+        ];
+    }
+
     //verifica se existe a rota
     //executa ação que chama controller
     //cria retorno e trata erros 
     public function executar($rota)
     {
-
         if (isset($this->endpoints[$rota])) {
+            // Verificar se a rota precisa de autenticação
+            if (!in_array($rota, $this->rotasPublicas())) {
+                try {
+                    $dadosUsuario = JWTHelper::verificarAutenticacao();
+                    if (!$dadosUsuario) {
+                        $retorno = new Retorno();
+                        $retorno->erro = "Acesso não autorizado";
+                        return $retorno;
+                    }
+                    // Disponibilizar dados do usuário para os controllers
+                    $_SESSION['usuario_autenticado'] = $dadosUsuario;
+                } catch (Exception $e) {
+                    $retorno = new Retorno();
+                    $retorno->erro = "Acesso não autorizado";
+                    return $retorno;
+                }
+            }
+
             $endpoint = $this->endpoints[$rota];
             $dados = $endpoint->executar();
 
@@ -77,6 +115,3 @@ class Rotas
         return $retorno;
     }
 }
-
-
-//endpoint
