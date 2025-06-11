@@ -2,8 +2,8 @@
 
 namespace generic;
 
-//array associativo mapeando as URLs -> controllers
-//crud
+use Exception;
+
 class Rotas
 {
     private $endpoints = [];
@@ -11,7 +11,7 @@ class Rotas
     public function __construct()
     {
         $this->endpoints = [
-            // Rotas de autenticação (não protegidas)
+
             "auth/login" => new Acao([
                 Acao::POST => new Endpoint("Auth", "login")
             ]),
@@ -19,7 +19,6 @@ class Rotas
                 Acao::POST => new Endpoint("Auth", "register")
             ]),
 
-            // Rotas protegidas - requerem autenticação
             "auth/perfil" => new Acao([
                 Acao::GET => new Endpoint("Auth", "perfil")
             ]),
@@ -62,7 +61,6 @@ class Rotas
         ];
     }
 
-    // Rotas que não precisam de autenticação
     private function rotasPublicas()
     {
         return [
@@ -71,47 +69,53 @@ class Rotas
         ];
     }
 
-    //verifica se existe a rota
-    //executa ação que chama controller
-    //cria retorno e trata erros 
     public function executar($rota)
     {
-        if (isset($this->endpoints[$rota])) {
-            // Verificar se a rota precisa de autenticação
-            if (!in_array($rota, $this->rotasPublicas())) {
-                try {
-                    $dadosUsuario = JWTHelper::verificarAutenticacao();
-                    if (!$dadosUsuario) {
+        try {
+            if (isset($this->endpoints[$rota])) {
+                if (!in_array($rota, $this->rotasPublicas())) {
+                    try {
+                        $dadosUsuario = JWTHelper::verificarAutenticacao();
+                        if (!$dadosUsuario) {
+                            $retorno = new Retorno();
+                            $retorno->erro = "Acesso não autorizado";
+                            return $retorno;
+                        }
+
+                        if (session_status() === PHP_SESSION_NONE) {
+                            session_start();
+                        }
+                        $_SESSION['usuario_autenticado'] = $dadosUsuario;
+                    } catch (Exception $e) {
+                        error_log("Erro na autenticação: " . $e->getMessage());
                         $retorno = new Retorno();
                         $retorno->erro = "Acesso não autorizado";
                         return $retorno;
                     }
-                    // Disponibilizar dados do usuário para os controllers
-                    $_SESSION['usuario_autenticado'] = $dadosUsuario;
-                } catch (Exception $e) {
-                    $retorno = new Retorno();
-                    $retorno->erro = "Acesso não autorizado";
-                    return $retorno;
                 }
-            }
 
-            $endpoint = $this->endpoints[$rota];
-            $dados = $endpoint->executar();
+                $endpoint = $this->endpoints[$rota];
+                $dados = $endpoint->executar();
+
+                $retorno = new Retorno();
+                $retorno->dados = $dados;
+
+                if (is_array($dados) && isset($dados['erro'])) {
+                    $retorno->erro = $dados['erro'];
+                    $retorno->dados = null;
+                }
+
+                return $retorno;
+            }
 
             $retorno = new Retorno();
-            $retorno->dados = $dados;
-
-            if (is_array($dados) && isset($dados['erro'])) {
-                $retorno->erro = $dados['erro'];
-                $retorno->dados = null;
-            }
-
+            $retorno->erro = "Endpoint não encontrado";
+            return $retorno;
+        } catch (Exception $e) {
+            error_log("Erro geral no sistema de rotas: " . $e->getMessage());
+            $retorno = new Retorno();
+            $retorno->erro = "Erro interno do servidor";
             return $retorno;
         }
-
-        //erro 404 se a rota não for encontrada
-        $retorno = new Retorno();
-        $retorno->erro = "Endpoint não encontrado";
-        return $retorno;
     }
 }

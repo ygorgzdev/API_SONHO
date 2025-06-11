@@ -4,21 +4,22 @@ namespace generic;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Exception;
 
 class JWTHelper
 {
     private static $chave_secreta = 'sua_chave_secreta_muito_segura_aqui_2024';
     private static $algoritmo = 'HS256';
-    private static $tempo_expiracao = 3600; // 1 hora
+    private static $tempo_expiracao = 3600;
 
     public static function gerarToken($usuario_id, $email)
     {
         try {
             $payload = [
-                'iss' => 'api-sonhos', // Emissor
-                'aud' => 'usuarios-sonhos', // Audiência  
-                'iat' => time(), // Emitido em
-                'exp' => time() + self::$tempo_expiracao, // Expira em
+                'iss' => 'api-sonhos',
+                'aud' => 'usuarios-sonhos',
+                'iat' => time(),
+                'exp' => time() + self::$tempo_expiracao,
                 'data' => [
                     'usuario_id' => $usuario_id,
                     'email' => $email
@@ -27,6 +28,7 @@ class JWTHelper
 
             return JWT::encode($payload, self::$chave_secreta, self::$algoritmo);
         } catch (Exception $e) {
+            error_log("Erro ao gerar token JWT: " . $e->getMessage());
             throw new Exception("Erro ao gerar token: " . $e->getMessage());
         }
     }
@@ -41,6 +43,7 @@ class JWTHelper
             $decoded = JWT::decode($token, new Key(self::$chave_secreta, self::$algoritmo));
             return $decoded->data;
         } catch (Exception $e) {
+            error_log("Erro ao validar token JWT: " . $e->getMessage());
             throw new Exception("Token inválido: " . $e->getMessage());
         }
     }
@@ -50,7 +53,7 @@ class JWTHelper
         try {
             $headers = getallheaders();
 
-            if (!isset($headers['Authorization'])) {
+            if (!$headers || !isset($headers['Authorization'])) {
                 throw new Exception("Header Authorization não encontrado");
             }
 
@@ -62,6 +65,7 @@ class JWTHelper
 
             return $matches[1];
         } catch (Exception $e) {
+            error_log("Erro ao extrair token do header: " . $e->getMessage());
             throw new Exception("Erro ao extrair token: " . $e->getMessage());
         }
     }
@@ -73,6 +77,7 @@ class JWTHelper
             $dadosUsuario = self::validarToken($token);
             return $dadosUsuario;
         } catch (Exception $e) {
+            error_log("Falha na verificação de autenticação: " . $e->getMessage());
             return false;
         }
     }
