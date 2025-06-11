@@ -2,11 +2,6 @@
 
 namespace generic;
 
-//instacia de rotas 
-//generic/rotas executa a rota
-//todas resposta = json
-//logica codigos http
-//converta json e envia
 
 class Controller
 {
@@ -43,20 +38,17 @@ class Controller
                     is_array($retorno->dados) &&
                     isset($retorno->dados['sucesso'])
                 ) {
-                    http_response_code(201); //cria
+                    http_response_code(201);
                 } else {
-                    http_response_code(200); //ok
+                    http_response_code(200);
                 }
             }
 
             $json = json_encode($retorno);
             echo $json;
         } else {
-            http_response_code(500); //sem retorno
+            http_response_code(500);
             echo json_encode(["erro" => "Erro interno do servidor"]);
         }
     }
 }
-
-
-//retorno

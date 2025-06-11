@@ -10,7 +10,6 @@ class Auth
     public function login($email, $senha)
     {
         try {
-            // Validação básica dos parâmetros
             if (empty($email) || empty($senha)) {
                 return ["erro" => "Email e senha são obrigatórios"];
             }
@@ -27,11 +26,9 @@ class Auth
     public function register($email, $senha, $nome)
     {
         try {
-            // Validação básica dos parâmetros
             if (empty($email) || empty($senha) || empty($nome)) {
                 return ["erro" => "Email, senha e nome são obrigatórios"];
             }
-
             $service = new AuthService();
             $resultado = $service->registrar($email, $senha, $nome);
             return $resultado;

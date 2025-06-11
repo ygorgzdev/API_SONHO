@@ -2,18 +2,12 @@
 
 namespace generic;
 
-//fornece acesso a conexão
-
 
 class MysqlFactory
 {
-    public MysqlSingleton $banco; //prop publi tipo mysqlsingleton
+    public MysqlSingleton $banco;
     public function __construct()
     {
-        $this->banco = MysqlSingleton::getInstance(); //pega instancia unica do banco
+        $this->banco = MysqlSingleton::getInstance();
     }
 }
-
-//abstração;flexibilidade;herança
-
-//singleton

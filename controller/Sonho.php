@@ -4,11 +4,6 @@ namespace controller;
 
 use service\SonhoService;
 
-//nao valida
-//nao acessa bd
-//faz ajustes ,
-//lógica vai pro service
-//complexidade esta em generic
 
 class Sonho
 {
@@ -56,6 +51,3 @@ class Sonho
         return $resultado;
     }
 }
-
-
-//services

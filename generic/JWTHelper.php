@@ -8,7 +8,7 @@ use Exception;
 
 class JWTHelper
 {
-    private static $chave_secreta = 'sua_chave_secreta_muito_segura_aqui_2024';
+    private static $chave_secreta = 'h99$%@¨Gydgbufbaub%¨&¨**%$$';
     private static $algoritmo = 'HS256';
     private static $tempo_expiracao = 3600;
 
